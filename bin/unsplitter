@@ -1,0 +1,92 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+options = {}
+optparse = OptionParser.new do|opts|
+  opts.banner = "Usage: unsplitter [options] table_name [table_name2] ..."
+
+  options[:verbose] = false
+  opts.on( '-v', '--verbose', 'Output more information' ) do
+    options[:verbose] = true
+  end
+
+  options[:config] = "config/database.yml"
+  opts.on('-c', '--config FILE', "Set config file. default: #{options[:config]}") do |cfg|
+    options[:config] = cfg
+  end
+
+  options[:primary_db] = :db_primary
+  opts.on('-p', '--primary_db DB_NAME', "Primary (source) database config name. default: #{options[:primary_db]}") do |db|
+    options[:primary_db] = db.to_sym
+  end
+
+  options[:secondary_db] = :db_secondary
+  opts.on('-s', '--secondary_db DB_NAME', "Secondary (destination) database config name. default: #{options[:secondary_db]}") do |db|
+    options[:secondary_db] = db.to_sym
+  end
+
+  options[:primary_key] = 'id'
+  opts.on('-k', '--primary_key COLUMN', "Primary key column. default: #{options[:primary_key]}") do |pk|
+    options[:primary_key] = pk
+  end
+
+  options[:time_column] = 'updated_at'
+  opts.on('-t', '--time_column COLUMN', "Timeliness column. Empty string for none. default: #{options[:time_column]}") do |tc|
+    options[:time_column] = tc.empty? ? nil : tc
+  end
+
+  options[:sql_filter] = nil
+  opts.on('-f', '--filter SQL', 'SQL filter (where clause)') do |sql|
+    options[:sql_filter] = sql
+  end
+
+  options[:workers] = 10
+  opts.on('-w', '--workers COUNT', 'Number of sync worker threads. default: #{options[:workers]}') do |count|
+    options[:workers] = count.to_i
+  end
+
+  options[:dry_run] = false
+  opts.on('-d', '--dry-run', 'Dry-run, log without updating.') do
+    options[:dry_run] = true
+  end
+
+  opts.on('-h', '--help', 'Display this screen') do
+    puts opts
+    exit
+  end
+
+end
+
+optparse.parse!
+
+if ARGV.empty?
+  puts optparse
+  exit
+end
+
+require 'unsplitter'
+
+Unsplitter.logger = Logger.new(STDOUT)
+Unsplitter.logger.level = Logger::WARN unless options[:verbose]
+
+ActiveRecord::Base.logger = Unsplitter.logger
+
+Unsplitter.logger.debug "Reading config: #{options[:config]}"
+ActiveRecord::Base.configurations = YAML::load(IO.read(options[:config]))
+
+if options[:dry_run]
+  Unsplitter.logger.info "Dry-run only."
+end
+
+du = DbUnsplitter.new(
+  options[:primary_db],
+  options[:secondary_db],
+  options[:workers],
+  options[:dry_run]
+)
+
+ARGV.each do |table_name|
+  Unsplitter.logger.info "Syncing table: #{table_name}"
+  du.sync_table(table_name)
+end
