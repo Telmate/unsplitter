@@ -20,7 +20,7 @@ class DbUnsplitter
     sql << " WHERE #{sql_filter}" if sql_filter.present?
     sql << " ORDER BY #{sort}" if sort.present?
     counter = 0
-    sync_at = Time.now - 10.seconds # give a buffer to the master-master lag
+    sync_at = (Time.now - 10.seconds).to_s(:db) # give a buffer to the master-master lag
     sync_sql = nil
     sync_proc = lambda do |p_row|
       pk_val = p_row[primary_key]

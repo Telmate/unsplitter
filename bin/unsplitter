@@ -70,7 +70,14 @@ if ARGV.empty?
   exit
 end
 
-require 'unsplitter'
+begin
+  require 'unsplitter'
+rescue LoadError
+  # try in bundler mode
+  require 'bundler/setup'
+  Bundler.setup(:default)
+  require 'unsplitter'
+end
 
 Unsplitter.logger = Logger.new(STDOUT)
 Unsplitter.logger.level = Logger::WARN unless options[:verbose]

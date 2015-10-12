@@ -77,9 +77,9 @@ class MysqlPowertool< ActiveRecord::Base
             else
               val = res.getObject(idx)
               if val.is_a? Java::JavaSql::Timestamp
-                row[name] = Time.at((val.getTime / 1000) - (val.getTimezoneOffset * 60))
+                row[name] = Time.at((val.getTime / 1000) - (val.getTimezoneOffset * 60)).to_s(:db)
               elsif val.is_a? Java::JavaSql::Date
-                row[name] = val.to_s.to_date
+                row[name] = val.to_s.to_date.to_s(:db)
               else
                 row[name] = val
               end
