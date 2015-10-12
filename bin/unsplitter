@@ -41,8 +41,13 @@ optparse = OptionParser.new do|opts|
     options[:sql_filter] = sql
   end
 
+  options[:order_by] = nil
+  opts.on('-o', '--order SQL', 'Order by columns (ex: id DESC) default: unsorted') do |sql|
+    options[:order_by] = sql
+  end
+
   options[:workers] = 10
-  opts.on('-w', '--workers COUNT', 'Number of sync worker threads. default: #{options[:workers]}') do |count|
+  opts.on('-w', '--workers COUNT', "Number of sync worker threads. default: #{options[:workers]}") do |count|
     options[:workers] = count.to_i
   end
 
@@ -83,10 +88,14 @@ du = DbUnsplitter.new(
   options[:primary_db],
   options[:secondary_db],
   options[:workers],
-  options[:dry_run]
-)
+  options[:dry_run])
 
 ARGV.each do |table_name|
   Unsplitter.logger.info "Syncing table: #{table_name}"
-  du.sync_table(table_name)
+  du.sync_table(
+    table_name,
+    options[:primary_key],
+    options[:time_column],
+    options[:sql_filter],
+    options[:order_by])
 end

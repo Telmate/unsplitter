@@ -15,9 +15,10 @@ class DbUnsplitter
   end
 
   # Compare rows between the primary and secondary database
-  def sync_table(table_name, primary_key = 'id', mytime_column = 'updated_at', sql_filter = nil)
+  def sync_table(table_name, primary_key = 'id', mytime_column = 'updated_at', sql_filter = nil, sort = nil)
     sql = "SELECT * FROM #{table_name}"
     sql << " WHERE #{sql_filter}" if sql_filter.present?
+    sql << " ORDER BY #{sort}" if sort.present?
     counter = 0
     sync_at = Time.now - 10.seconds # give a buffer to the master-master lag
     sync_sql = nil
